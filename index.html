@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none, touch-action=none">
+    <title>매일매일 금융 저금통</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            max-height: 850px;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 은행 앱 스타일 상단바 */
+        .bank-header {
+            padding: 25px 24px 10px 24px;
+            background: #fff;
+        }
+        .bank-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #191f28;
+            margin-bottom: 6px;
+        }
+        .bank-subtitle {
+            font-size: 0.85rem;
+            color: #8b95a1;
+        }
+
+        /* 자산 보유 현황판 카드 */
+        .asset-card {
+            margin: 15px 24px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .asset-label {
+            font-size: 0.9rem;
+            color: #4e5968;
+            font-weight: 600;
+        }
+        .asset-amount {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #3182f6; /* 토스 블루 스타일 */
+        }
+
+        /* 레벨 및 경험치 프로그레스 바 */
+        .level-container {
+            padding: 0 24px;
+            margin-bottom: 20px;
+        }
+        .level-badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #3182f6;
+            background: #e8f3ff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #e5e8eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #3182f6;
+            transition: width 0.2s ease;
+        }
+
+        /* 메인 캐릭터(저금통) 인터랙션 구역 */
+        .main-stage {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #ffffff 0%, #f9fafb 100%);
+        }
+
+        /* 저금통 캐릭터 오브젝트 */
+        .piggy {
+            width: 160px;
+            height: 160px;
+            cursor: pointer;
+            transition: transform 0.08s ease;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 5.5rem; /* 이모지로 깔끔하게 메인 그래픽 대체 */
+        }
+        .piggy:active {
+            transform: scale(0.92);
+        }
+
+        /* 짤랑이는 동전 팝업 이펙트 */
+        .coin-effect {
+            position: absolute;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffb300;
+            pointer-events: none;
+            animation: floatUp 0.6s ease-out forwards;
+            z-index: 10;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-70px) scale(1.2); opacity: 0; }
+        }
+
+        /* 불시 렌더링되는 황금 보너스 동전 */
+        .bonus-coin {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #ffcc00;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 10px rgba(255,204,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            animation: bounceDrop 1s infinite alternate;
+            z-index: 5;
+        }
+        @keyframes bounceDrop {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        /* 하단 앱 가이드 / 미션 버튼 */
+        .footer-zone {
+            padding: 24px;
+            background: #fff;
+            border-top: 1px solid #f2f4f6;
+        }
+        .mission-btn {
+            width: 100%;
+            padding: 16px;
+            background: #3182f6;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .mission-btn:active {
+            background: #1b64da;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        <!-- 상단 헤더 (토스/카카오뱅크 감성) -->
+        <div class="bank-header">
+            <div class="bank-title">매일 모으는 저금통 도전</div>
+            <div class="bank-subtitle">터치할 때마다 포인트와 저금통이 자라나요</div>
+        </div>
+
+        <!-- 내 통장 잔액 현황 -->
+        <div class="asset-card">
+            <span class="asset-label">모은 저축 금액</span>
+            <span class="asset-amount" id="goldDisplay">0 원</span>
+        </div>
+
+        <!-- 경험치 / 게이지 시스템 -->
+        <div class="level-container">
+            <div class="level-badge" id="levelDisplay">Lv.1 플라스틱 저금통</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="expBar"></div>
+            </div>
+        </div>
+
+        <!-- 저금통 클릭 공간 -->
+        <div class="main-stage" id="stage">
+            <!-- 메인 저금통 (이모지 기반) -->
+            <div class="piggy" id="piggyObj">🐖</div>
+        </div>
+
+        <!-- 하단 보상형 미션 버튼 느낌 -->
+        <div class="footer-zone">
+            <button class="mission-btn" id="bonusBtn">오늘의 우대이율 받기 (+500원)</button>
+        </div>
+    </div>
+
+    <script>
+        const stage = document.getElementById('stage');
+        const piggyObj = document.getElementById('piggyObj');
+        const goldDisplay = document.getElementById('goldDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const expBar = document.getElementById('expBar');
+        const bonusBtn = document.getElementById('bonusBtn');
+
+        let gold = 0;
+        let exp = 0;
+        let level = 1;
+        const maxExp = 100; // 레벨업에 필요한 클릭 횟수/경험치 바운더리
+
+        // 단계별 돼지 저금통 진화 리스트 (금융 앱 특유의 등급 디자인 고증)
+        const piggyRanks = [
+            { lv: 1, title: "Lv.1 핑크 아기돼지", icon: "🐖" },
+            { lv: 2, title: "Lv.2 든든한 놋쇠 저금통", icon: "🫖" },
+            { lv: 3, title: "Lv.3 번쩍이는 은빛 저금통", icon: "🥈" },
+            { lv: 4, title: "Lv.4 부의 상징 황금 돼지", icon: "👑" }
+        ];
+
+        // 찰랑거리는 사운드 효과 내장 합성
+        function playCoinSound() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 0.03);
+            
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.04);
+        }
+
+        // 돼지 터치 이벤트 핸들러
+        function tapPiggy(clientX, clientY) {
+            playCoinSound();
+
+            // 금액 및 경험치 누적 연산
+            const earn = level * 10; // 레벨이 높을수록 기본 적립액 증가
+            gold += earn;
+            exp += 4;
+
+            // 텍스트 플로팅 연출 효과 생성
+            createFloatingText(clientX, clientY, `+${earn}원`);
+
+            // 레벨업 구조 체크
+            if (exp >= maxExp) {
+                exp = 0;
+                if (level < piggyRanks.length) {
+                    level++;
+                } else {
+                    gold += 5000; // 만렙 달성 시 축하금 보너스
+                    createFloatingText(clientX, clientY, `만렙 보너스 +5000원!🎉`);
+                }
+            }
+
+            updateUI();
+        }
+
+        function createFloatingText(x, y, textStr) {
+            const rect = stage.getBoundingClientRect();
+            const effect = document.createElement('div');
+            effect.className = 'coin-effect';
+            effect.innerText = textStr;
+            effect.style.left = `${x - rect.left - 15}px`;
+            effect.style.top = `${y - rect.top - 20}px`;
+            stage.appendChild(effect);
+
+            setTimeout(() => effect.remove(), 600);
+        }
+
+        function updateUI() {
+            goldDisplay.innerText = `${gold.toLocaleString()} 원`;
+            
+            // 돼지 랭크 업데이트
+            const currentRank = piggyRanks[level - 1];
+            levelDisplay.innerText = currentRank.title;
+            piggyObj.innerText = currentRank.icon;
+
+            // 프로그레스 바 갱신
+            const percent = (exp / maxExp) * 100;
+            expBar.style.width = `${percent}%`;
+        }
+
+        // 간헐적으로 뚝 떨어져서 도파민을 주는 보너스 금융 상품 (황금 주사위/동전 복주머니 모양)
+        function spawnBonusCoin() {
+            if (document.querySelector('.bonus-coin')) return; // 이미 있으면 패스
+
+            const coin = document.createElement('div');
+            coin.className = 'bonus-coin';
+            coin.innerText = "💰";
+            
+            // 랜덤 위치 배정
+            const padding = 50;
+            const x = Math.random() * (stage.clientWidth - padding * 2) + padding;
+            const y = Math.random() * (stage.clientHeight - padding * 2) + padding;
+            coin.style.left = `${x}px`;
+            coin.style.top = `${y}px`;
+
+            const claimBonus = (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // 돼지 터치 겹침 방지
+                playCoinSound();
+                gold += 1000;
+                createFloatingText(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY, "+1,000원 혜택!");
+                coin.remove();
+                updateUI();
+            };
+
+            coin.addEventListener('touchstart', claimBonus, {passive: false});
+            coin.addEventListener('mousedown', claimBonus);
+            stage.appendChild(coin);
+
+            // 3초 안에 안 누르면 소멸 (금융 앱의 실시간 타임어택 고증)
+            setTimeout(() => { if (coin.parentNode) coin.remove(); }, 3000);
+        }
+
+        // 이벤트 리스너 마운트
+        piggyObj.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            tapPiggy(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+
+        piggyObj.addEventListener('mousedown', (e) => {
+            tapPiggy(e.clientX, e.clientY);
+        });
+
+        bonusBtn.addEventListener('click', (e) => {
+            gold += 500;
+            createFloatingText(e.clientX, e.clientY, "+500원 우대!");
+            updateUI();
+            bonusBtn.disabled = true;
+            bonusBtn.style.background = "#ccc";
+            bonusBtn.innerText = "오늘의 혜택 받기 완료";
+        });
+
+        // 4초마다 무작위 확률로 깜짝 보상 주머니 투하
+        setInterval(spawnBonusCoin, 4000);
+
+        // 초기 스타트 바인딩
+        updateUI();
+    </script>
+</body>
+</html>
